@@ -17,7 +17,7 @@ import java.io.IOException;
 public class CameraView extends SurfaceView implements SurfaceHolder.Callback {
 
     private static final String TAG = "CameraView";
-    private static final int CAMERA_ID = Camera.CameraInfo.CAMERA_FACING_FRONT;
+    private static final int CAMERA_ID = Camera.CameraInfo.CAMERA_FACING_BACK;
 
     private Context mContext;
     private SurfaceHolder mHolder;
@@ -64,7 +64,7 @@ public class CameraView extends SurfaceView implements SurfaceHolder.Callback {
         }
 
         int result;
-        if (info.facing == Camera.CameraInfo.CAMERA_FACING_FRONT) {
+        if (info.facing == Camera.CameraInfo.CAMERA_FACING_BACK) {
             result = (info.orientation + degrees) % 360;
             result = (360 - result) % 360;  // compensate the mirror
         } else {  // back-facing

@@ -45,6 +45,8 @@ public class MainActivity extends Activity {
 
     private static final int SCREEN_CAPTURE_PERMISSION_CODE = 1;
     private static final int EXTERNAL_STORAGE_PERMISSION_CODE = 2;
+    private static final int CAMERA_USE_PERMISSION_CODE = 3;
+
 
     private static final int FRAMERATE = 30;
     private static final String FILENAME = Environment.getExternalStorageDirectory().getPath()+"/presentation.mp4";
@@ -158,8 +160,17 @@ public class MainActivity extends Activity {
             ActivityCompat.requestPermissions(this,
                     new String[] {Manifest.permission.WRITE_EXTERNAL_STORAGE},
                     EXTERNAL_STORAGE_PERMISSION_CODE);
+        }
+
+        permission = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA);
+        if (permission != PackageManager.PERMISSION_GRANTED) {
+            Log.w(TAG, "Camera permissions is not granted");
+            // Request permissions
+            ActivityCompat.requestPermissions(this,
+                    new String[] {Manifest.permission.CAMERA},
+                    CAMERA_USE_PERMISSION_CODE);
         } else {
-            Log.i(TAG, "Write permission is granted!");
+            Log.i(TAG, "Camera permission is granted!");
             mButtonCreate.setEnabled(true);
         }
     }
@@ -174,6 +185,17 @@ public class MainActivity extends Activity {
                     mButtonCreate.setEnabled(true);
                 } else {
                     Toast.makeText(this, "Write permission is not granted", Toast.LENGTH_LONG).show();
+                }
+                return;
+            }
+
+            case CAMERA_USE_PERMISSION_CODE:{
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Log.i(TAG, "Camera permission is granted!");
+                    mButtonCreate.setEnabled(true);
+                } else {
+                    Toast.makeText(this, "Camera permission is not granted", Toast.LENGTH_LONG).show();
                 }
                 return;
             }
