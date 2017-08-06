@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/PresentationOnVirtualDisplay.iml" filepath="$PROJECT_DIR$/PresentationOnVirtualDisplay.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/darwin_hud-release/darwin_hud-release.iml" filepath="$PROJECT_DIR$/darwin_hud-release/darwin_hud-release.iml" />
     </modules>
   </component>
 </project>
