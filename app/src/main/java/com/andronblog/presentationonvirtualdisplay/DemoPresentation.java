@@ -40,9 +40,6 @@ public class DemoPresentation extends Presentation {
         Animation myRotation = AnimationUtils.loadAnimation(getContext(), R.anim.rotator);
         tv.startAnimation(myRotation);
 
-        CameraView cameraView = (CameraView) findViewById(R.id.cameraView);
-        cameraView.setCameraDisplayOrientation(mDefaultDisplayOrientation);
-
         final TextView timeTextView = (TextView) findViewById(R.id.tv_time);
         final long startTime = System.currentTimeMillis();
         final Runnable timerRunnable = new Runnable() {

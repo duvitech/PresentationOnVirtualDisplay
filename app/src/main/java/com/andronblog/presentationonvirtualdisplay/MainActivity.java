@@ -2,7 +2,6 @@ package com.andronblog.presentationonvirtualdisplay;
 
 import android.Manifest;
 import android.app.Activity;
-import android.app.Presentation;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -12,22 +11,14 @@ import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
-import android.graphics.Canvas;
-import android.graphics.ImageFormat;
-import android.graphics.Paint;
+import android.graphics.Matrix;
 import android.graphics.PixelFormat;
-import android.graphics.Point;
 import android.hardware.display.DisplayManager;
 import android.hardware.display.VirtualDisplay;
 import android.media.Image;
 import android.media.ImageReader;
-import android.media.MediaPlayer;
-import android.media.MediaRecorder;
-import android.media.MediaRouter;
 import android.media.projection.MediaProjection;
 import android.media.projection.MediaProjectionManager;
-import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -38,29 +29,16 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.util.DisplayMetrics;
 import android.util.Log;
-import android.util.Size;
 import android.view.Display;
-import android.view.Gravity;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.Surface;
-import android.view.SurfaceHolder;
-import android.view.SurfaceView;
 import android.view.View;
 import android.view.WindowManager;
-import android.view.animation.Animation;
-import android.view.animation.AnimationUtils;
 import android.widget.Button;
 import android.widget.ImageView;
-import android.widget.TextView;
 import android.widget.Toast;
 
-import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.lang.ref.WeakReference;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.util.Set;
 
@@ -77,11 +55,11 @@ public class MainActivity extends Activity {
     private static final int CAMERA_USE_PERMISSION_CODE = 3;
 
 
-    private static final int FRAMERATE = 30;
+    private static final int FRAMERATE = 5;
     private static final String FILENAME = Environment.getExternalStorageDirectory().getPath()+"/presentation.mp4";
 
-    private int mWidth;
-    private int mHeight;
+    private int mWidth = 640;
+    private int mHeight = 400;
     private DisplayMetrics mMetrics = new DisplayMetrics();
 
     private DisplayManager mDisplayManager;
@@ -94,14 +72,10 @@ public class MainActivity extends Activity {
     private MediaProjection mProjection;
     private MediaProjection.Callback mProjectionCallback;
 
-    private MediaPlayer mMediaPlayer;
     private ImageView mImageView;
 
-    private Surface mSurface;
     private Button mButtonCreate;
     private Button mButtonDestroy;
-    private Button mButtonPlayVideo;
-    private Button mButtonStopVideo;
 
     private ImageReader imageReader;
     private HandlerThread mBackgroundThread;
@@ -109,6 +83,7 @@ public class MainActivity extends Activity {
     private boolean bHudConnected = false;
     private Handler mHandler;
     private UsbService usbService = null;
+    private static boolean bRenderframe = true;
 
     /*
  * This function handles repsonse packets from the UsbService.
@@ -265,9 +240,6 @@ public class MainActivity extends Activity {
 
         // Initialize resolution of virtual display in pixels to show
         // the surface view on full screen
-        mWidth = mImageView.getMaxWidth();
-        mHeight = mImageView.getMaxHeight();
-
         mHandler = new MyHandler(this);
 
         mDisplayManager = (DisplayManager) getSystemService(Context.DISPLAY_SERVICE);
@@ -292,32 +264,6 @@ public class MainActivity extends Activity {
             }
         });
 
-        mButtonPlayVideo = (Button) findViewById(R.id.btn_play);
-        mButtonPlayVideo.setEnabled(false);
-        mButtonPlayVideo.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-
-                mButtonCreate.setEnabled(false);
-                mButtonDestroy.setEnabled(false);
-                mButtonPlayVideo.setEnabled(false);
-                mButtonStopVideo.setEnabled(true);
-            }
-        });
-
-        mButtonStopVideo = (Button) findViewById(R.id.btn_stop);
-        mButtonStopVideo.setEnabled(false);
-        mButtonStopVideo.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                mMediaPlayer.stop();
-                mButtonCreate.setEnabled(true);
-                mButtonDestroy.setEnabled(false);
-                mButtonPlayVideo.setEnabled(true);
-                mButtonStopVideo.setEnabled(false);
-            }
-        });
-
         // Check if we have write permission
         int permission = ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
         if (permission != PackageManager.PERMISSION_GRANTED) {
@@ -326,19 +272,11 @@ public class MainActivity extends Activity {
             ActivityCompat.requestPermissions(this,
                     new String[] {Manifest.permission.WRITE_EXTERNAL_STORAGE},
                     EXTERNAL_STORAGE_PERMISSION_CODE);
-        }
-
-        permission = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA);
-        if (permission != PackageManager.PERMISSION_GRANTED) {
-            Log.w(TAG, "Camera permissions is not granted");
-            // Request permissions
-            ActivityCompat.requestPermissions(this,
-                    new String[] {Manifest.permission.CAMERA},
-                    CAMERA_USE_PERMISSION_CODE);
         } else {
             Log.i(TAG, "Camera permission is granted!");
             mButtonCreate.setEnabled(true);
         }
+
     }
 
     @Override
@@ -355,16 +293,6 @@ public class MainActivity extends Activity {
                 return;
             }
 
-            case CAMERA_USE_PERMISSION_CODE:{
-                // If request is cancelled, the result arrays are empty.
-                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    Log.i(TAG, "Camera permission is granted!");
-                    mButtonCreate.setEnabled(true);
-                } else {
-                    Toast.makeText(this, "Camera permission is not granted", Toast.LENGTH_LONG).show();
-                }
-                return;
-            }
         }
     }
 
@@ -387,13 +315,6 @@ public class MainActivity extends Activity {
         super.onPause();
         Log.d(TAG, "onPause");
         destroyVirtualDisplay();
-        if (mMediaPlayer != null) {
-            mMediaPlayer.release();
-            mMediaPlayer = null;
-            mButtonPlayVideo.setEnabled(false);
-            mButtonStopVideo.setEnabled(false);
-        }
-
         unregisterReceiver(mUsbReceiver);
         unbindService(usbConnection);
 
@@ -472,6 +393,7 @@ public class MainActivity extends Activity {
         return projection;
     }
 
+    private static int count = 0;
     public ImageReader.OnImageAvailableListener hudImageListener = new ImageReader.OnImageAvailableListener() {
         @Override
         public void onImageAvailable(ImageReader reader) {
@@ -480,20 +402,36 @@ public class MainActivity extends Activity {
             if (image == null)
                 return;
 
-            final Bitmap bmp = Bitmap.createBitmap(640, 400, Bitmap.Config.ARGB_8888);
-            bmp.copyPixelsFromBuffer(image.getPlanes()[0].getBuffer());
+            final Bitmap bmp = Bitmap.createBitmap(mWidth, mHeight, Bitmap.Config.ARGB_8888);
+            buffer = image.getPlanes()[0].getBuffer();
+            bmp.copyPixelsFromBuffer(buffer);
 
+            if(bRenderframe) {
+                if (usbService != null && bHudConnected) {
+                    usbService.sendImageToHud(bmp);
+                }
+            }
+
+/*
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     mImageView.setImageBitmap(bmp);
                 }
             });
-            if (usbService != null && bHudConnected){
-                usbService.sendImageToHud(bmp);
-            }
-
+*/
             image.close();
+            if(count == 0 && bRenderframe) {
+                bRenderframe = !bRenderframe;
+                count++;
+            }else{
+                if(count >= 5 ){
+                    bRenderframe = true;
+                    count = 0;
+                }else{
+                    count++;
+                }
+            }
         }
     };
 
@@ -505,7 +443,7 @@ public class MainActivity extends Activity {
             mBackgroundThread = new HandlerThread("Virtual Display Background");
             mBackgroundThread.start();
             mBackgroundHandler = new Handler(mBackgroundThread.getLooper());
-            imageReader = ImageReader.newInstance(640, 400, PixelFormat.RGBX_8888, 4);
+            imageReader = ImageReader.newInstance(mWidth, mHeight, PixelFormat.RGBX_8888, FRAMERATE);
             Surface readerSurface = imageReader.getSurface();
 
             //flags |= DisplayManager.VIRTUAL_DISPLAY_FLAG_PUBLIC;
@@ -517,12 +455,7 @@ public class MainActivity extends Activity {
 
             mButtonCreate.setEnabled(false);
             mButtonDestroy.setEnabled(true);
-            mButtonPlayVideo.setEnabled(false);
-            // Release the previous instance of media player before recording new data into the same file.
-            if (mMediaPlayer != null) {
-                mMediaPlayer.release();
-                mMediaPlayer = null;
-            }
+
             // Start recording the content of MediaRecorder surface rendering by VirtualDisplay
             // into file.
 
@@ -550,7 +483,6 @@ public class MainActivity extends Activity {
         }
         mButtonDestroy.setEnabled(false);
         mButtonCreate.setEnabled(true);
-        mButtonPlayVideo.setEnabled(true);
     }
 
     /*
