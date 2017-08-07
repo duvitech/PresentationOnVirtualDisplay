@@ -274,8 +274,20 @@ public class MainActivity extends Activity {
                     EXTERNAL_STORAGE_PERMISSION_CODE);
         } else {
             Log.i(TAG, "Camera permission is granted!");
-            mButtonCreate.setEnabled(true);
         }
+
+        permission = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA);
+        if (permission != PackageManager.PERMISSION_GRANTED) {
+            Log.w(TAG, "Camera permissions is not granted");
+            // Request permissions
+            ActivityCompat.requestPermissions(this,
+                    new String[] {Manifest.permission.CAMERA},
+                    CAMERA_USE_PERMISSION_CODE);
+        } else {
+            Log.i(TAG, "Camera permission is granted!");
+        }
+
+        mButtonCreate.setEnabled(true);
 
     }
 
@@ -289,6 +301,17 @@ public class MainActivity extends Activity {
                     mButtonCreate.setEnabled(true);
                 } else {
                     Toast.makeText(this, "Write permission is not granted", Toast.LENGTH_LONG).show();
+                }
+                return;
+            }
+
+            case CAMERA_USE_PERMISSION_CODE:{
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    Log.i(TAG, "Camera permission is granted!");
+                    mButtonCreate.setEnabled(true);
+                } else {
+                    Toast.makeText(this, "Camera permission is not granted", Toast.LENGTH_LONG).show();
                 }
                 return;
             }
