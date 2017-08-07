@@ -448,7 +448,7 @@ public class MainActivity extends Activity {
                 bRenderframe = !bRenderframe;
                 count++;
             }else{
-                if(count >= 5 ){
+                if(count >= 3 ){
                     bRenderframe = true;
                     count = 0;
                 }else{
