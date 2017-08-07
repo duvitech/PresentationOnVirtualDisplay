@@ -85,7 +85,7 @@ public class MainActivity extends Activity {
     private UsbService usbService = null;
     private static boolean bRenderframe = true;
 
-    /*
+/*
  * This function handles repsonse packets from the UsbService.
 */
     public void responsePacketHandler(HudResponsePacket resp) {
